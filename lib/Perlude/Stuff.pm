@@ -4,9 +4,9 @@ use Modern::Perl;
 use Exporter 'import';
 
 our %EXPORT_TAGS =
-( dbi   => [qw/ sql_hash sql_array  /]
+( dbi   => [qw/ sql_hash sql_array sqlite  /]
 , shell => [qw/ cat zcat /]
-, math  => [qw/ cartesianProduct indexes /]
+, math  => [qw/ cartesianProduct indexes sum product whileBelow /]
 );
 
 our @EXPORT_OK = map @$_, values %EXPORT_TAGS;
@@ -17,8 +17,12 @@ sub f::getpwent    () { enlist { my @e = getpwent or return; \@e } }
 sub f::getpwent_hr () {
     enlist {
         my %user;
-        @user{qw/ login x uid gid gecos home shell /} = getpwent
-            or return;
+        @user{qw/
+            name passwd
+            uid gid
+            quota comment gcos dir shell
+            expire
+        /} = getpwent or return;
         \%user;
     }
 }
@@ -52,6 +56,12 @@ sub DBI::db::stream {
 
 sub sql_hash  { (shift)->stream( h => @_ ) }
 sub sql_array { (shift)->stream( a => @_ ) }
+sub sqlite {
+    require DBI;
+    ( my $db = DBI->connect("dbi:SQLite:dbname=".shift)
+    )->{RaiseError} = 1;
+    $db;
+}
 
 =head1 Shell Stuff
 
@@ -138,6 +148,13 @@ sub cartesianProduct {
         [ map { $$_[shift @$i] } @v ]
 
     } indexes @v
+}
+
+sub product ($) { traverse { state $r = 1; $r ?  $r*=$_ : 0 } shift }
+sub sum     ($) { traverse { state $r = 0; $r+=$_ } shift }
+sub whileBelow ($$) {
+    my ($max,$l) = @_;
+    takeWhile { $_ < $max } $l 
 }
 
 1;
