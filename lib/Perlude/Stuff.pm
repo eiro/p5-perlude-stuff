@@ -4,18 +4,22 @@ use Modern::Perl;
 use Exporter 'import';
 
 our %EXPORT_TAGS =
-( dbi   => [qw/ sql_hash sql_array sqlite  /]
-, shell => [qw/ cat zcat /]
-, math  => [qw/ cartesianProduct indexes sum product whileBelow /]
+( dbi       => [qw/ sql_hash sql_array sqlite  /]
+, shell     => [qw/ cat zcat /]
+, math      => [qw/ cartesianProduct indexes sum product whileBelow /]
+, sequence  => [qw/ fibo look_and_say /]
+, sysop     => [qw/ getpwent getpwent_hr /]
+, XXX       => [qw/ XXX /]
 );
-
 our @EXPORT_OK = map @$_, values %EXPORT_TAGS;
+
+sub XXX ($) { traverse { print YAML::Dump $_ } shift }
 
 # system stuff ( See Perlude::Builtins ? )
 
-sub f::getpwent    () { enlist { my @e = getpwent or return; \@e } }
+sub f::getpwent    () { sub { my @e = getpwent or return; \@e } }
 sub f::getpwent_hr () {
-    enlist {
+    sub {
         my %user;
         @user{qw/
             name passwd
@@ -51,14 +55,14 @@ sub DBI::db::stream {
         $_ = $1 ~~ 'h' ? 'fetchrow_hashref' : 'fetchrow_arrayref'
     } $iter;
     (my $sth  = $dbh->prepare(@_))->execute;
-    enlist { $sth->$iter // () }
+    sub { $sth->$iter // () }
 }
 
 sub sql_hash  { (shift)->stream( h => @_ ) }
 sub sql_array { (shift)->stream( a => @_ ) }
 sub sqlite {
     require DBI;
-    ( my $db = DBI->connect("dbi:SQLite:dbname=".shift)
+    ( my $db = DBI->connect("dbi:SQLite:dbname=".shift) or die $!
     )->{RaiseError} = 1;
     $db;
 }
@@ -83,7 +87,7 @@ sub cat {
     %$param and die "unparsed params: ", join keys %$param;
     my @files = @_;
     my ($fh,$v);
-    enlist {
+    sub {
         $fh or open $fh,$io,shift @files || return;
         return $v if defined ( $v = <$fh> );
         $fh = undef;
@@ -111,7 +115,7 @@ sub indexes {
     my @i       = (0)x@v;  # i for indexes
     my $done    = 0;       # $done for the win
 
-    enlist {
+    sub {
         return if $done;
 
         # we return the current indexes
@@ -155,6 +159,23 @@ sub sum     ($) { traverse { state $r = 0; $r+=$_ } shift }
 sub whileBelow ($$) {
     my ($max,$l) = @_;
     takeWhile { $_ < $max } $l 
+}
+
+sub fibo {
+    my @seed = @_;
+    sub {
+        push @seed, $seed[0] + $seed[1];
+        shift @seed;
+    }
+}
+
+sub look_and_say {
+    my ($s,$r) = shift; 
+    sub {
+        $r = $s;
+        $s =~ s/((.)\2*)/length($1).$2/eg;
+        $r;
+    }
 }
 
 1;
