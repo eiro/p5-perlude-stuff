@@ -5,7 +5,7 @@ use Exporter 'import';
 
 our %EXPORT_TAGS =
 ( dbi       => [qw/ sql_hash sql_array sqlite  /]
-, shell     => [qw/ cat zcat /]
+, shell     => [qw/ cat zcat ls sh /]
 , math      => [qw/ cartesianProduct indexes sum product whileBelow /]
 , sequence  => [qw/ fibo look_and_say /]
 , sysop     => [qw/ getpwent getpwent_hr /]
@@ -81,17 +81,21 @@ sub sqlite {
 
 =cut
 
-sub cat {
-    my $param = ref $_[0] ? shift : {};
-    my $io = '<'.( delete $$param{io} || '' );
-    %$param and die "unparsed params: ", join keys %$param;
-    my @files = @_;
-    my ($fh,$v);
+sub sh { lines "@_|" }
+
+sub ls {
+    my $pattern = shift;
     sub {
-        $fh or open $fh,$io,shift @files || return;
-        return $v if defined ( $v = <$fh> );
-        $fh = undef;
+        while (my $file = glob $pattern) { return $file }
+        ()
     }
+}
+
+sub cat {
+    concatC
+        apply { lines $_ }
+        filter { -f $_ }
+        ls shift;
 }
 
 sub zcat {
@@ -177,5 +181,6 @@ sub look_and_say {
         $r;
     }
 }
+
 
 1;
