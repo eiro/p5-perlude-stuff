@@ -2,6 +2,7 @@ package Perlude::Stuff;
 use Perlude;
 use Modern::Perl;
 use Exporter 'import';
+use YAML;
 
 our %EXPORT_TAGS =
 ( dbi       => [qw/ sql_hash sql_array sqlite  /]
@@ -13,7 +14,7 @@ our %EXPORT_TAGS =
 );
 our @EXPORT_OK = map @$_, values %EXPORT_TAGS;
 
-sub XXX ($) { traverse { print YAML::Dump $_ } shift }
+sub XXX ($) { now { print YAML::Dump $_ } shift }
 
 # system stuff ( See Perlude::Builtins ? )
 
@@ -42,7 +43,7 @@ sub f::getpwent_hr () {
     use Perlude::Stuff ':dbi';
     ( my $db = DBI->connect('dbi:SQLite:dbname=passwd.db')
     )->{RaiseError} = 1;
-    traverse { say $$_{login} } sql_hash $db, 'select login from passwd';
+    now { say $$_{login} } sql_hash $db, 'select login from passwd';
 
 =cut
 
@@ -71,8 +72,8 @@ sub sqlite {
 
 =examples
 
-   traverse {print if /foo/} zcat <log/*.gz>; 
-   traverse {print if /foo/} cat <log/*.log>; 
+   now {print if /foo/} zcat <log/*.gz>; 
+   now {print if /foo/} cat <log/*.log>; 
 
 =head2 todo: reinvent find
 
@@ -110,7 +111,7 @@ sub zcat {
     , [qw< a  b  c >]
     , [qw< x  y  z >]
     );
-    traverse {say join ',',@$_ } cartesianProduct @matrices;
+    now {say join ',',@$_ } cartesianProduct @matrices;
 
 =cut
 
@@ -158,8 +159,8 @@ sub cartesianProduct {
     } indexes @v
 }
 
-sub product ($) { traverse { state $r = 1; $r ?  $r*=$_ : 0 } shift }
-sub sum     ($) { traverse { state $r = 0; $r+=$_ } shift }
+sub product ($) { now { state $r = 1; $r ?  $r*=$_ : 0 } shift }
+sub sum     ($) { now { state $r = 0; $r+=$_ } shift }
 sub whileBelow ($$) {
     my ($max,$l) = @_;
     takeWhile { $_ < $max } $l 
