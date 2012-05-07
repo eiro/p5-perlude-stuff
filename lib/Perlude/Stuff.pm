@@ -6,7 +6,6 @@ use YAML;
 
 our %EXPORT_TAGS =
 ( dbi       => [qw/ sql_hash sql_array sqlite  /]
-, shell     => [qw/ cat zcat ls sh /]
 , math      => [qw/ cartesianProduct indexes sum product whileBelow /]
 , sequence  => [qw/ fibo look_and_say /]
 , sysop     => [qw/ getpwent getpwent_hr /]
@@ -68,41 +67,6 @@ sub sqlite {
     $db;
 }
 
-=head1 Shell Stuff
-
-=examples
-
-   now {print if /foo/} zcat <log/*.gz>; 
-   now {print if /foo/} cat <log/*.log>; 
-
-=head2 todo: reinvent find
-
-    # a walker + a selector ? 
-    # a DSL like {^}.*riak.*/{Df}.*/
-
-=cut
-
-sub sh { lines "@_|" }
-
-sub ls {
-    my $pattern = shift;
-    sub {
-        while (my $file = glob $pattern) { return $file }
-        ()
-    }
-}
-
-sub cat {
-    concatC
-        apply { lines $_ }
-        filter { -f $_ }
-        ls shift;
-}
-
-sub zcat {
-    require PerlIO::gzip;
-    cat {qw/io :gzip/}, @_
-}
 
 =head1 Math Stuff
 
