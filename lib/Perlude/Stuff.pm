@@ -9,6 +9,8 @@ our %EXPORT_TAGS =
 , math      => [qw/ cartesianProduct indexes sum product whileBelow /]
 , sequence  => [qw/ fibo look_and_say /]
 , sysop     => [qw/ getpwent getpwent_hr /]
+, excel     => [qw/ sheet_rows sheet_maps excel_sheets /]
+, csv       => [qw/ as_csv stream_csv /]
 , XXX       => [qw/ XXX /]
 );
 our @EXPORT_OK = map @$_, values %EXPORT_TAGS;
@@ -145,6 +147,58 @@ sub look_and_say {
         $s =~ s/((.)\2*)/length($1).$2/eg;
         $r;
     }
+}
+
+use Spreadsheet::ParseExcel::Simple;
+sub sheet_rows (_) {
+    my $xls = shift;
+    sub { 
+	return unless $xls->has_data;
+	[ $xls->next_row ];
+    }
+}
+
+sub sheet_maps ($;$) {
+    my $xls = shift;
+    my @cols = @_  ? @{$_[0]} : $xls->next_row;
+    sub {
+	return unless $xls->has_data;
+	my %map;
+	@map{ @cols } = $xls->next_row;
+	\%map;
+    }
+}
+
+sub excel_sheets (_) {
+    my $file = shift;
+    (Spreadsheet::ParseExcel::Simple->read( $file )
+	or die "can't read $file"
+    )->sheets
+}
+
+use Text::CSV;
+
+# TODO: BENCH
+# now {say} stream_csv {binary => 1}
+#     , survey;
+# my $csv = as_csv {binary => 1};
+# now { say $csv->( @$_ ) } survey;
+
+sub as_csv {
+    my $csv = Text::CSV->new( @_ );
+    sub {
+	$csv->combine( @_ ) or die $csv->error_diag;
+	$csv->string;
+    }
+}
+
+sub stream_csv {
+    my $stream = pop;
+    my $csv = Text::CSV->new( @_ );
+    apply {
+	$csv->combine( @$_ ) or die $csv->error_diag;
+	$csv->string;
+    } $stream
 }
 
 
